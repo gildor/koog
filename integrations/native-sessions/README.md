@@ -6,8 +6,8 @@ native runtime owns the model/tool loop, authentication and conversation.
 
 This fork adds a **standalone Gradle included build** at
 `integrations/native-sessions`. It uses published Koog **1.3.0** dependencies and
-does not modify Koog core or require the whole upstream build. No tg-agent service
-is required. The API is experimental and not published to Maven Central.
+does not modify Koog core or require the whole upstream build. The API is
+experimental and not published to Maven Central.
 
 ## Use from another project
 
