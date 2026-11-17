@@ -23,15 +23,23 @@ interface BridgeTransport : Closeable {
     suspend fun request(method: String, params: JsonNode = obj()): JsonNode
 }
 
-/** One structured JSONL process, with bidirectional requests and native event delivery. */
+/**
+ * One structured JSONL process, with bidirectional requests and native event delivery.
+ * [environment] edits the inherited environment: a null value removes the variable,
+ * e.g. to keep an API key from overriding the runtime's native login.
+ */
 class JsonLineProcess(
     command: List<String>,
     cwd: File,
     private val onNativeRequest: suspend (JsonNode) -> JsonNode,
     private val onEvent: (JsonNode) -> Unit = {},
     private val onStderr: (String) -> Unit = {},
+    environment: Map<String, String?> = emptyMap(),
 ) : BridgeTransport {
-    private val process = ProcessBuilder(command).directory(cwd).start()
+    private val process = ProcessBuilder(command).directory(cwd).apply {
+        val env = environment()
+        for ((name, value) in environment) if (value == null) env.remove(name) else env[name] = value
+    }.start()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val writer = process.outputStream.bufferedWriter()
     private val pending = ConcurrentHashMap<Long, CompletableDeferred<JsonNode>>()

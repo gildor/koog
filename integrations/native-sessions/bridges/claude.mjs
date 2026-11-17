@@ -54,7 +54,11 @@ export class ClaudeSession {
           const turn = this.active;
           this.active = null;
           if (message.is_error || message.subtype !== 'success') turn.reject(new Error(JSON.stringify(message.errors ?? message.subtype)));
-          else turn.resolve({ sessionId: this.sessionId, text: message.result ?? JSON.stringify(message.structured_output), nativeStatus: message.subtype });
+          else turn.resolve({ sessionId: this.sessionId, nativeStatus: message.subtype, usage: message.usage ?? null,
+            costUsd: message.total_cost_usd ?? null, durationMs: message.duration_ms ?? null,
+            // A schema-validated payload wins; an empty result string must not mask it.
+            text: message.structured_output !== undefined && message.structured_output !== null
+              ? JSON.stringify(message.structured_output) : message.result });
         }
       }
       this.failure = new Error('Claude stream ended before completing the turn');

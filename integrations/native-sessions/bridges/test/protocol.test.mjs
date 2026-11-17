@@ -82,9 +82,22 @@ test('Claude drains native events and returns only a successful result', async (
     yield { type: 'result', subtype: 'success', session_id: 'claude-session', result: '42' };
   })();
   await session.drain();
-  assert.deepEqual(await turn.promise, { sessionId: 'claude-session', text: '42', nativeStatus: 'success' });
+  assert.deepEqual(await turn.promise, { sessionId: 'claude-session', text: '42', nativeStatus: 'success',
+    usage: null, costUsd: null, durationMs: null });
   assert.equal(events.length, 2);
   await assert.rejects(session.turn('after EOF'), /stream ended/);
+});
+
+test('Claude prefers structured_output over an empty result string', async () => {
+  const session = new ClaudeSession(() => {}, () => {}), turn = deferred(); session.active = turn;
+  session.q = (async function* () {
+    yield { type: 'result', subtype: 'success', session_id: 's', result: '', structured_output: { answer: 42 },
+      usage: { output_tokens: 3 }, total_cost_usd: 0.01, duration_ms: 5 };
+  })();
+  await session.drain();
+  const result = await turn.promise;
+  assert.equal(result.text, '{"answer":42}');
+  assert.deepEqual(result.usage, { output_tokens: 3 });
 });
 
 test('Claude error result and premature EOF both reject the active turn', async () => {
